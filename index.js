@@ -1,83 +1,33 @@
+const wppconnect = require('wppconnect');
 const express = require('express');
-const wppconnect = require('@wppconnect-team/wppconnect');
-const path = require('path');
-
 const app = express();
-app.use(express.json());
 
-let client;
-let lastQr = null;
+const PORT = process.env.PORT || 10000;
 
-const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
-
-// Inicia o WPPConnect
-wppconnect
-  .create({
-    session: 'render-session',
-    headless: true,
-    disableWelcome: true,
-    executablePath,
-    catchQR: (base64Qr, asciiQR) => {
-      lastQr = base64Qr;
-      console.log(asciiQR);
-    },
-    browserArgs: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-extensions',
-      '--disable-gpu',
-      '--disable-sync'
-    ]
-  })
-  .then((c) => {
-    client = c;
-    console.log('✅ WPPConnect conectado. Abra /qr para escanear.');
-  })
-  .catch((e) => console.error('Erro ao iniciar WPPConnect:', e));
-
-function toNumberId(to) {
-  if (/@(c|g)\.us$/.test(to)) return to;
-  return `${String(to).replace(/\D/g, '')}@c.us`;
-}
-
-app.get('/', (_req, res) => res.send('WPPConnect online ✅'));
-
-app.get('/qr', (_req, res) => {
-  if (!lastQr) return res.status(404).send('QR ainda não gerado. Aguarde o boot.');
-  res.setHeader('Content-Type', 'text/html');
-  res.end(
-    `<html><body style="font-family:sans-serif">
-      <h3>Escaneie o QR</h3>
-      <img style="width:320px" src="data:image/png;base64,${lastQr}"/>
-      <p>WhatsApp ➜ Aparelhos conectados ➜ Conectar aparelho.</p>
-    </body></html>`
-  );
+app.get('/', (req, res) => {
+  res.send('Servidor WPPConnect rodando com Chromium no Render 🚀');
 });
 
-app.post('/send', async (req, res) => {
-  if (!client) return res.status(503).json({ error: 'Cliente ainda iniciando' });
-  const { to, message } = req.body || {};
-  if (!to || !message) return res.status(400).json({ error: 'to e message são obrigatórios' });
-  try {
-    await client.sendText(toNumberId(to), message);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
+app.listen(PORT, () => {
+  console.log(`✅ API escutando na porta ${PORT}`);
 });
 
-app.post('/send-group', async (req, res) => {
-  if (!client) return res.status(503).json({ error: 'Cliente ainda iniciando' });
-  const { groupId, message } = req.body || {};
-  if (!groupId || !message) return res.status(400).json({ error: 'groupId e message são obrigatórios' });
-  try {
-    await client.sendText(groupId, message);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
+wppconnect.create({
+  session: 'sessionName',
+  headless: true,
+  useChrome: true,
+  executablePath: require('puppeteer').executablePath(), // usa o Chromium do puppeteer
+  browserArgs: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--no-zygote',
+    '--disable-gpu'
+  ]
+}).then((client) => {
+  console.log("🤖 WPPConnect iniciado com sucesso!");
+}).catch((err) => {
+  console.error("❌ Erro ao iniciar WPPConnect:", err);
 });
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 API escutando na porta ${PORT}`));
