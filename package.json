@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "postinstall": "npx puppeteer browsers install chrome --prefix-path=$(pwd)"
+    "postinstall": "npx puppeteer browsers install chrome || echo 'Puppeteer Chrome já instalado'"
   },
   "engines": {
     "node": "20.x"
