@@ -1,5 +1,6 @@
 const express = require('express');
 const wppconnect = require('@wppconnect-team/wppconnect');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
@@ -7,15 +8,18 @@ app.use(express.json());
 let client;
 let lastQr = null;
 
+const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+
 // Inicia o WPPConnect
 wppconnect
   .create({
     session: 'render-session',
     headless: true,
     disableWelcome: true,
+    executablePath,
     catchQR: (base64Qr, asciiQR) => {
-      lastQr = base64Qr;         // guardamos o QR para exibir em /qr
-      console.log(asciiQR);      // também mostra o QR em ASCII no log do Render
+      lastQr = base64Qr;
+      console.log(asciiQR);
     },
     browserArgs: [
       '--no-sandbox',
@@ -32,16 +36,13 @@ wppconnect
   })
   .catch((e) => console.error('Erro ao iniciar WPPConnect:', e));
 
-// Helper: garante o sufixo correto para números
 function toNumberId(to) {
   if (/@(c|g)\.us$/.test(to)) return to;
   return `${String(to).replace(/\D/g, '')}@c.us`;
 }
 
-// Rota simples
 app.get('/', (_req, res) => res.send('WPPConnect online ✅'));
 
-// Ver o QR num <img> (mais fácil que só no log)
 app.get('/qr', (_req, res) => {
   if (!lastQr) return res.status(404).send('QR ainda não gerado. Aguarde o boot.');
   res.setHeader('Content-Type', 'text/html');
@@ -54,7 +55,6 @@ app.get('/qr', (_req, res) => {
   );
 });
 
-// Enviar para número
 app.post('/send', async (req, res) => {
   if (!client) return res.status(503).json({ error: 'Cliente ainda iniciando' });
   const { to, message } = req.body || {};
@@ -67,7 +67,6 @@ app.post('/send', async (req, res) => {
   }
 });
 
-// Enviar para GRUPO (precisa do groupId terminando com @g.us)
 app.post('/send-group', async (req, res) => {
   if (!client) return res.status(503).json({ error: 'Cliente ainda iniciando' });
   const { groupId, message } = req.body || {};
