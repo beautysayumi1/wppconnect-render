@@ -1,14 +1,14 @@
 {
-  "name": "wppconnect-render",
+  "name": "wppconnect-api",
   "version": "1.0.0",
-  "description": "WppConnect rodando no Render com Chromium incluso",
   "main": "index.js",
+  "license": "MIT",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
+    "@wppconnect-team/wppconnect": "^1.8.4",
     "express": "^4.18.2",
-    "puppeteer": "^22.10.0",
-    "wppconnect": "^1.8.4"
+    "puppeteer": "^21.5.0"
   }
 }
