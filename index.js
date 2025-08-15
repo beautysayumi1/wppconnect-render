@@ -1,22 +1,15 @@
-const wppconnect = require('wppconnect');
 const express = require('express');
+const wppconnect = require('@wppconnect-team/wppconnect');
+const puppeteer = require('puppeteer');
+
 const app = express();
+const port = process.env.PORT || 3000;
 
-const PORT = process.env.PORT || 10000;
+app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Servidor WPPConnect rodando com Chromium no Render 🚀');
-});
-
-app.listen(PORT, () => {
-  console.log(`✅ API escutando na porta ${PORT}`);
-});
-
+// Inicializa WPPConnect com Chromium do Puppeteer
 wppconnect.create({
-  session: 'sessionName',
   headless: true,
-  useChrome: true,
-  executablePath: require('puppeteer').executablePath(), // usa o Chromium do puppeteer
   browserArgs: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -25,9 +18,25 @@ wppconnect.create({
     '--no-first-run',
     '--no-zygote',
     '--disable-gpu'
-  ]
-}).then((client) => {
-  console.log("🤖 WPPConnect iniciado com sucesso!");
-}).catch((err) => {
-  console.error("❌ Erro ao iniciar WPPConnect:", err);
+  ],
+  executablePath: process.env.CHROME_PATH || puppeteer.executablePath()
+}).then(client => start(client))
+  .catch(err => console.error('Erro ao iniciar WPPConnect', err));
+
+// Função exemplo para enviar mensagem
+function start(client) {
+  app.post('/send', async (req, res) => {
+    const { number, message } = req.body;
+    try {
+      await client.sendText(number, message);
+      res.json({ status: 'Mensagem enviada com sucesso!' });
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      res.status(500).json({ error: 'Falha ao enviar mensagem' });
+    }
+  });
+}
+
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
